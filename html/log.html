@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>项目进度日志 · b3063</title>
+  <meta name="description" content="b3063 项目进度记录">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #60a5fa;
+      --accent-2: #34d399;
+      --ring: rgba(96,165,250,.45);
+      --shadow: rgba(2,6,23,.6);
+      --radius: 16px;
+      --grid-gap: 18px;
+      --maxw: 1080px;
+      --grad: radial-gradient(1200px 600px at 10% -10%, rgba(56,189,248,.25), transparent 30%),
+              radial-gradient(1200px 600px at 110% 10%, rgba(147,197,253,.2), transparent 35%),
+              radial-gradient(1000px 500px at 50% 120%, rgba(52,211,153,.22), transparent 40%);
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --text: #0f172a;
+        --muted: #475569;
+        --accent: #2563eb;
+        --accent-2: #059669;
+        --ring: rgba(37,99,235,.25);
+        --shadow: rgba(15,23,42,.08);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text);
+      background: var(--bg);
+      background-image: var(--grad);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .container {
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 2rem 1rem;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem 0;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header p {
+      color: var(--muted);
+      font-size: 1.1rem;
+      margin: 0;
+    }
+
+    .log-entries {
+      display: flex;
+      flex-direction: column;
+      gap: var(--grid-gap);
+    }
+
+    .log-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 2rem;
+      box-shadow: 0 4px 6px -1px var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .log-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px -5px var(--shadow);
+    }
+
+    .log-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin: 0 0 1rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .log-title::before {
+      content: "📝";
+      font-size: 1.2rem;
+    }
+
+    .log-content {
+      color: var(--text);
+      line-height: 1.7;
+      margin-bottom: 1rem;
+    }
+
+    .log-content a {
+      color: var(--accent-2);
+      text-decoration: none;
+      font-weight: 500;
+      border-bottom: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .log-content a:hover {
+      border-bottom-color: var(--accent-2);
+      text-shadow: 0 0 8px rgba(52, 211, 153, 0.3);
+    }
+
+    .log-date {
+      position: absolute;
+      bottom: 1rem;
+      right: 1.5rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .fixed-date {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--card);
+      color: var(--text);
+      padding: 1rem 1.5rem;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 6px -1px var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      font-weight: 600;
+      font-size: 0.9rem;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--muted);
+      text-decoration: none;
+      font-weight: 500;
+      margin-bottom: 2rem;
+      transition: color 0.2s ease;
+    }
+
+    .back-link:hover {
+      color: var(--accent);
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      .header h1 {
+        font-size: 2rem;
+      }
+      
+      .log-card {
+        padding: 1.5rem;
+      }
+      
+      .fixed-date {
+        bottom: 1rem;
+        right: 1rem;
+        padding: 0.8rem 1rem;
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="index.html" class="back-link">
+      ← 返回主页
+    </a>
+    
+    <div class="header">
+      <h1>项目进度日志</h1>
+      <p>记录项目开发过程中的重要节点和学习心得</p>
+    </div>
+
+    <div class="log-entries">
+      <div class="log-card">
+        <h2 class="log-title">3D初识</h2>
+        <div class="log-content">
+          学习了solvespace简单使用，并且学会了如何通过bamboo平台进行简单3d打印的步骤，练习模型为<a href="../grah/将旗.slvs" target="_blank">"grah/将旗.slvs"</a>
+        </div>
+        <div class="log-date">2025年9月23日晚</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fixed-date" id="currentDate">
+    <!-- 日期将通过JavaScript动态更新 -->
+  </div>
+
+  <script>
+    // 更新右下角固定日期显示
+    function updateDate() {
+      const now = new Date();
+      const options = { 
+        year: "numeric", 
+        month: "long", 
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        weekday: "long"
+      };
+      const dateString = now.toLocaleDateString("zh-CN", options);
+      document.getElementById("currentDate").textContent = dateString;
+    }
+
+    // 页面加载时更新日期
+    updateDate();
+    
+    // 每分钟更新一次日期
+    setInterval(updateDate, 60000);
+  </script>
+</body>
+</html>
