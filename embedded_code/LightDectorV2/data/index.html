@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>光线强度探测器 V2</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; 
+            margin: 0;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        h1 { 
+            color: #333; 
+            margin: 0 0 20px 0;
+            font-size: 1.8em;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        h2, h3 { 
+            color: #444; 
+            margin-top: 0;
+        }
+        
+        .status-panel { 
+            background: linear-gradient(135deg, #e8f4fd 0%, #d1e7f7 100%);
+            padding: 15px; 
+            margin: 15px 0;
+            border-radius: 10px;
+            border-left: 5px solid #2196F3;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .status-panel div {
+            margin: 8px 0;
+            font-size: 0.95em;
+        }
+        
+        .status-panel strong {
+            color: #1976D2;
+            margin-right: 5px;
+        }
+        
+        .control-panel { 
+            margin: 20px 0; 
+            padding: 20px; 
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #f9f9f9 0%, #f5f5f5 100%);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .control-panel h3 {
+            margin-top: 0;
+            color: #555;
+        }
+        
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        button, select { 
+            margin: 0;
+            padding: 10px 18px; 
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        button:hover { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        select {
+            background: white;
+            cursor: pointer;
+        }
+        
+        select:hover {
+            border-color: #667eea;
+        }
+        
+        #strobePanel {
+            display: none;
+            background: linear-gradient(135deg, #fffacd 0%, #fff8dc 100%);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border-left: 5px solid #ffd700;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        #strobePanel h3 {
+            margin: 0;
+            color: #8b6914;
+        }
+        
+        .data-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .chart-container {
+            background: #fafafa;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .chart-container h3 {
+            margin-top: 0;
+            color: #555;
+        }
+        
+        .info-container {
+            background: #fafafa;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .info-container h3 {
+            margin-top: 0;
+            color: #555;
+        }
+        
+        #systemInfo p {
+            margin: 12px 0;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+        }
+        
+        /* 横屏设备（PC和横屏移动设备） */
+        @media (orientation: landscape) and (min-width: 768px) {
+            body {
+                padding: 20px;
+            }
+            
+            .container {
+                padding: 30px;
+            }
+            
+            .data-panel {
+                grid-template-columns: 2fr 1fr;
+            }
+            
+            .button-group {
+                gap: 10px;
+            }
+        }
+        
+        /* 竖屏设备（移动设备） */
+        @media (orientation: portrait) {
+            body {
+                padding: 8px;
+            }
+            
+            .container {
+                padding: 15px;
+                border-radius: 12px;
+            }
+            
+            h1 {
+                font-size: 1.5em;
+                margin-bottom: 15px;
+            }
+            
+            .status-panel {
+                padding: 12px;
+                font-size: 0.9em;
+            }
+            
+            .control-panel {
+                padding: 15px;
+            }
+            
+            .button-group {
+                gap: 6px;
+            }
+            
+            button, select {
+                padding: 8px 12px;
+                font-size: 0.85em;
+                flex: 1 1 auto;
+                min-width: calc(50% - 3px);
+            }
+            
+            .data-panel {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            /* 竖屏时，曲线图放在下部并占满宽度 */
+            .data-panel {
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .info-container {
+                order: 1;
+            }
+            
+            .chart-container {
+                order: 2;
+                width: 100%;
+            }
+            
+            .chart-container canvas {
+                width: 100% !important;
+                height: auto !important;
+            }
+        }
+        
+        /* 小屏幕设备优化 */
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.3em;
+            }
+            
+            .status-panel div {
+                font-size: 0.85em;
+            }
+            
+            button, select {
+                font-size: 0.8em;
+                padding: 7px 10px;
+                min-width: calc(50% - 3px);
+            }
+            
+            .chart-container, .info-container {
+                padding: 12px;
+            }
+        }
+        
+        /* 大屏幕设备优化 */
+        @media (min-width: 1400px) {
+            .container {
+                max-width: 1400px;
+                padding: 40px;
+            }
+            
+            .data-panel {
+                gap: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌞 光线强度探测器 V2</h1>
+        
+        <div class="status-panel">
+            <div><strong>连接状态:</strong> <span id="connectionStatus" style="color:red;">未连接</span></div>
+            <div><strong>最新值:</strong> <span id="currentValue">-</span> ADC (<span id="currentVoltage">-</span> V)</div>
+            <div><strong>峰值记录:</strong> 最大 <span id="maxValue">-</span> | 最小 <span id="minValue">-</span></div>
+            <div><strong>刷新率:</strong> <span id="updateInterval">-</span> ms | <strong>状态:</strong> <span id="systemStatus">-</span></div>
+        </div>
+
+        <div class="control-panel">
+            <h3>控制面板</h3>
+            <div class="button-group">
+                <button onclick="startStrobeDetection()">频闪检测 (5秒)</button>
+                <select onchange="setRate(this.value)">
+                    <option value="200">200ms</option>
+                    <option value="100" selected>100ms</option>
+                    <option value="50">50ms</option>
+                    <option value="20">20ms</option>
+                </select>
+                <button onclick="sendCommand('pause')">暂停</button>
+                <button onclick="sendCommand('resume')">继续</button>
+                <button onclick="sendCommand('reset_peaks')">重置峰值</button>
+                <button onclick="sendCommand('reboot')">重启设备</button>
+                <button onclick="sendCommand('display_off')">关闭显示器</button>
+                <button onclick="sendCommand('display_on')">恢复显示</button>
+                <button onclick="downloadCSV()">下载数据</button>
+            </div>
+        </div>
+
+        <div id="strobePanel" style="display: none;">
+            <h3>🔍 频闪检测进行中... <span id="countdown">5</span>秒</h3>
+        </div>
+
+        <div class="data-panel">
+            <div class="chart-container">
+                <h3>实时光照曲线</h3>
+                <canvas id="lightChart"></canvas>
+            </div>
+            <div class="info-container">
+                <h3>系统信息</h3>
+                <div id="systemInfo">
+                    <p>最大峰值时间: <span id="maxTime">-</span></p>
+                    <p>最小峰值时间: <span id="minTime">-</span></p>
+                    <p>数据点数: <span id="dataPoints">0</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let lightChart;
+        const chartData = {
+            labels: [],
+            values: []
+        };
+        const maxChartPoints = 100;
+        let strobeCountdown;
+        
+        // WebSocket连接
+        let ws = null;
+        let wsReconnectInterval = null;
+        const WS_RECONNECT_DELAY = 3000; // 3秒后重连
+        
+        // 浏览器端数据存储（用于下载和频闪检测）
+        let clientDataStore = []; // 存储格式: {timestamp, value, voltage}
+        let maxStoredPoints = 10000; // 最多存储10000个数据点
+        
+        // 频闪检测相关
+        let strobeDetectionActive = false;
+        let strobeDataCollection = [];
+        let strobeStartTime = 0;
+        let originalUpdateInterval = 100; // 保存原始刷新率
+        let isRestoringRate = false; // 标记是否正在恢复刷新率
+
+        // 初始化图表
+        function initChart() {
+            const ctx = document.getElementById('lightChart').getContext('2d');
+            const isPortrait = window.matchMedia("(orientation: portrait)").matches;
+            
+            lightChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: '光线强度 (ADC值)',
+                        data: chartData.values,
+                        borderColor: 'rgb(102, 126, 234)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: isPortrait ? 2 : 2,
+                    animation: {
+                        duration: 0 // 禁用动画以提高性能
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            title: { display: true, text: '时间序列', color: '#666' },
+                            ticks: { maxTicksLimit: 10, color: '#666' },
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        },
+                        y: { 
+                            title: { display: true, text: '光线强度 (ADC)', color: '#666' },
+                            suggestedMin: 0,
+                            suggestedMax: 4095,
+                            ticks: { color: '#666' },
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // 监听屏幕方向变化，重新调整图表
+            window.addEventListener('orientationchange', function() {
+                setTimeout(() => {
+                    if (lightChart) {
+                        lightChart.resize();
+                    }
+                }, 100);
+            });
+            
+            // 监听窗口大小变化
+            window.addEventListener('resize', function() {
+                if (lightChart) {
+                    lightChart.resize();
+                }
+            });
+        }
+
+        // 连接WebSocket
+        function connectWebSocket() {
+            // 获取当前页面的主机名和端口
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.hostname;
+            const wsUrl = `${protocol}//${host}:81`;
+            
+            console.log('正在连接WebSocket:', wsUrl);
+            
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = function() {
+                    console.log('WebSocket连接已建立');
+                    document.getElementById('connectionStatus').textContent = '已连接 (WebSocket)';
+                    document.getElementById('connectionStatus').style.color = 'green';
+                    
+                    // 清除重连定时器
+                    if (wsReconnectInterval) {
+                        clearInterval(wsReconnectInterval);
+                        wsReconnectInterval = null;
+                    }
+                };
+                
+                ws.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        
+                        // 处理传感器数据
+                        if (data.type === 'sensor_data') {
+                            updateDisplay(data);
+                            storeClientData(data);
+                            
+                            // 如果频闪检测激活，收集数据
+                            if (strobeDetectionActive) {
+                                collectStrobeData(data);
+                            }
+                        }
+                        // 处理命令响应
+                        else if (data.status) {
+                            console.log('命令响应:', data);
+                            if (data.status === 'ok' && data.message) {
+                                // 对于某些命令不显示alert
+                                const command = data.command;
+                                // 频闪检测期间的set_rate命令或正在恢复刷新率时不显示提示
+                                if (command === 'set_rate' && (strobeDetectionActive || isRestoringRate)) {
+                                    // 静默处理，不显示提示
+                                    if (isRestoringRate) {
+                                        isRestoringRate = false; // 清除标志
+                                    }
+                                } else if (command !== 'display_off' && command !== 'display_on') {
+                                    alert('执行结果: ' + data.message);
+                                }
+                            } else if (data.status === 'error') {
+                                // 频闪检测期间的set_rate命令错误也不显示提示
+                                const command = data.command;
+                                if (!(command === 'set_rate' && (strobeDetectionActive || isRestoringRate))) {
+                                    alert('错误: ' + data.message);
+                                }
+                                if (isRestoringRate) {
+                                    isRestoringRate = false; // 清除标志
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('解析WebSocket消息失败:', error, event.data);
+                    }
+                };
+                
+                ws.onerror = function(error) {
+                    console.error('WebSocket错误:', error);
+                    document.getElementById('connectionStatus').textContent = '连接错误';
+                    document.getElementById('connectionStatus').style.color = 'red';
+                };
+                
+                ws.onclose = function() {
+                    console.log('WebSocket连接已关闭');
+                    document.getElementById('connectionStatus').textContent = '连接断开，正在重连...';
+                    document.getElementById('connectionStatus').style.color = 'orange';
+                    
+                    // 自动重连
+                    if (!wsReconnectInterval) {
+                        wsReconnectInterval = setInterval(() => {
+                            console.log('尝试重新连接WebSocket...');
+                            connectWebSocket();
+                        }, WS_RECONNECT_DELAY);
+                    }
+                };
+            } catch (error) {
+                console.error('WebSocket连接失败:', error);
+                document.getElementById('connectionStatus').textContent = '连接失败: ' + error.message;
+                document.getElementById('connectionStatus').style.color = 'red';
+                
+                // 尝试重连
+                if (!wsReconnectInterval) {
+                    wsReconnectInterval = setInterval(() => {
+                        connectWebSocket();
+                    }, WS_RECONNECT_DELAY);
+                }
+            }
+        }
+
+        // 存储数据到客户端
+        function storeClientData(data) {
+            const dataPoint = {
+                timestamp: data.timestamp || Date.now(),
+                value: data.value,
+                voltage: data.voltage,
+                uptime: data.uptime || 0
+            };
+            
+            clientDataStore.push(dataPoint);
+            
+            // 限制存储数量
+            if (clientDataStore.length > maxStoredPoints) {
+                clientDataStore.shift();
+            }
+        }
+
+        // 更新显示
+        function updateDisplay(data) {
+            document.getElementById('currentValue').textContent = data.value;
+            document.getElementById('currentVoltage').textContent = data.voltage.toFixed(3);
+            document.getElementById('maxValue').textContent = data.max;
+            document.getElementById('minValue').textContent = data.min;
+            document.getElementById('updateInterval').textContent = data.interval;
+            document.getElementById('systemStatus').textContent = data.paused ? '已暂停' : '运行中';
+            
+            // 更新保存的刷新率（如果不是在频闪检测中）
+            if (!strobeDetectionActive) {
+                originalUpdateInterval = data.interval;
+            }
+            
+            // 更新峰值时间显示（ESP32返回的是运行时间，单位毫秒）
+            if (data.max_time) {
+                const maxSeconds = Math.floor(data.max_time / 1000);
+                const maxMinutes = Math.floor(maxSeconds / 60);
+                const maxSecs = maxSeconds % 60;
+                document.getElementById('maxTime').textContent = maxMinutes + '分' + maxSecs + '秒';
+            }
+            if (data.min_time) {
+                const minSeconds = Math.floor(data.min_time / 1000);
+                const minMinutes = Math.floor(minSeconds / 60);
+                const minSecs = minSeconds % 60;
+                document.getElementById('minTime').textContent = minMinutes + '分' + minSecs + '秒';
+            }
+            
+            // 更新图表
+            const timeLabel = new Date().toLocaleTimeString();
+            chartData.labels.push(timeLabel);
+            chartData.values.push(data.value);
+            
+            if (chartData.labels.length > maxChartPoints) {
+                chartData.labels.shift();
+                chartData.values.shift();
+            }
+            
+            // 使用 'none' 模式更新图表以提高性能
+            lightChart.update('none');
+            document.getElementById('dataPoints').textContent = clientDataStore.length;
+        }
+
+        // 发送控制命令（通过WebSocket）
+        function sendCommand(command, value = '', silent = false) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                if (!silent) {
+                    alert('WebSocket未连接，无法发送命令');
+                }
+                return;
+            }
+            
+            const commandData = {
+                command: command,
+                value: value
+            };
+            
+            try {
+                ws.send(JSON.stringify(commandData));
+                console.log('发送命令:', commandData);
+            } catch (error) {
+                console.error('发送命令失败:', error);
+                if (!silent) {
+                    alert('命令发送失败: ' + error.message);
+                }
+            }
+        }
+
+        // 设置刷新率
+        function setRate(rate) {
+            sendCommand('set_rate', rate);
+        }
+
+        // 频闪检测 - 浏览器端实现
+        function startStrobeDetection() {
+            // 保存当前刷新率并设置为20ms（静默模式，不显示提示）
+            originalUpdateInterval = parseInt(document.getElementById('updateInterval').textContent) || 100;
+            sendCommand('set_rate', '20', true); // silent = true
+            
+            strobeDetectionActive = true;
+            strobeDataCollection = [];
+            strobeStartTime = Date.now();
+            
+            document.getElementById('strobePanel').style.display = 'block';
+            document.getElementById('strobePanel').innerHTML = '<h3>🔍 频闪检测进行中... <span id="countdown">5</span>秒</h3>';
+            let timeLeft = 5;
+            
+            strobeCountdown = setInterval(() => {
+                document.getElementById('countdown').textContent = timeLeft;
+                timeLeft--;
+                
+                if (timeLeft < 0) {
+                    clearInterval(strobeCountdown);
+                    strobeDetectionActive = false;
+                    
+                    // 恢复原始刷新率（静默模式，不显示提示）
+                    isRestoringRate = true; // 设置标志，避免显示提示
+                    sendCommand('set_rate', originalUpdateInterval.toString(), true);
+                    
+                    // 在浏览器端分析数据
+                    const result = analyzeStrobeData();
+                    document.getElementById('strobePanel').innerHTML = 
+                        '<h3>🔍 频闪检测结果</h3><p style="font-size:16px; font-weight:bold;">' + result + '</p>';
+                    // 不再隐藏结果，保持显示
+                }
+            }, 1000);
+        }
+
+        // 收集频闪检测数据
+        function collectStrobeData(data) {
+            strobeDataCollection.push({
+                timestamp: data.timestamp || Date.now(),
+                value: data.value,
+                voltage: data.voltage
+            });
+        }
+
+        // ========== 简洁频闪检测算法（新思路：优先准确性） ==========
+        
+        // 1. 检测异常突变（只检测极端异常，非常宽松）
+        function detectAnomalies(data) {
+            const anomalies = [];
+            const n = data.length;
+            if (n < 5) return anomalies;
+            
+            // 只检测两种极端异常：
+            // 1. 超出ADC合理范围的值（0-4095）
+            // 2. 完全孤立的极端异常值（前后都是正常值，中间突然出现完全不符合任何模式的极端值）
+            
+            // 检测超出ADC范围的值
+            for (let i = 0; i < n; i++) {
+                if (data[i] < 0 || data[i] > 4095) {
+                    anomalies.push({ index: i, change: Math.abs(data[i] - 2048) });
+                }
+            }
+            
+            // 检测完全孤立的极端异常值（非常严格的判断）
+            // 只有在前后值都在正常范围内，且当前值完全不符合任何模式时才判定为异常
+            for (let i = 3; i < n - 3; i++) {
+                // 计算更大窗口的统计（排除当前点）
+                let localSum = 0;
+                let localCount = 0;
+                for (let j = i - 3; j <= i + 3; j++) {
+                    if (j !== i) {
+                        localSum += data[j];
+                        localCount++;
+                    }
+                }
+                const localMean = localSum / localCount;
+                
+                // 计算局部标准差
+                let localVariance = 0;
+                for (let j = i - 3; j <= i + 3; j++) {
+                    if (j !== i) {
+                        localVariance += Math.pow(data[j] - localMean, 2);
+                    }
+                }
+                const localStdDev = Math.sqrt(localVariance / localCount);
+                
+                // 非常严格的异常判断：偏离超过5倍标准差，且偏离幅度超过数据范围的50%
+                // 并且前后值都在正常范围内（在局部均值的1.5倍标准差内）
+                const deviation = Math.abs(data[i] - localMean);
+                const dataRange = Math.max(...data) - Math.min(...data);
+                
+                if (deviation > Math.max(localStdDev * 5, dataRange * 0.5)) {
+                    // 检查前后值是否都在正常范围内
+                    const prevNormal = Math.abs(data[i - 1] - localMean) < localStdDev * 1.5;
+                    const nextNormal = Math.abs(data[i + 1] - localMean) < localStdDev * 1.5;
+                    const prev2Normal = Math.abs(data[i - 2] - localMean) < localStdDev * 1.5;
+                    const next2Normal = Math.abs(data[i + 2] - localMean) < localStdDev * 1.5;
+                    
+                    // 只有前后多个值都在正常范围内，且当前值极端异常时，才判定为异常
+                    if (prevNormal && nextNormal && prev2Normal && next2Normal) {
+                        anomalies.push({ index: i, change: deviation });
+                    }
+                }
+            }
+            
+            return anomalies;
+        }
+        
+        // 2. 计算统计特征
+        function calculateStatistics(data) {
+            const n = data.length;
+            if (n === 0) {
+                return { mean: 0, variance: 0, stdDev: 0, range: 0, max: 0, min: 0 };
+            }
+            
+            let sum = 0;
+            let sumSq = 0;
+            let max = data[0];
+            let min = data[0];
+            
+            for (let i = 0; i < n; i++) {
+                sum += data[i];
+                sumSq += data[i] * data[i];
+                if (data[i] > max) max = data[i];
+                if (data[i] < min) min = data[i];
+            }
+            
+            const mean = sum / n;
+            const variance = (sumSq / n) - (mean * mean);
+            const stdDev = Math.sqrt(Math.max(0, variance));
+            const range = max - min;
+            
+            return { mean, variance, stdDev, range, max, min };
+        }
+        
+        // 3. 检测最大值和最小值的位置
+        function findMaxMinPositions(data) {
+            const maxPositions = [];
+            const minPositions = [];
+            const maxValues = [];
+            const minValues = [];
+            const n = data.length;
+            
+            // 检测局部最大值
+            for (let i = 1; i < n - 1; i++) {
+                if (data[i] > data[i - 1] && data[i] > data[i + 1]) {
+                    maxPositions.push(i);
+                    maxValues.push(data[i]);
+                }
+            }
+            
+            // 检测局部最小值
+            for (let i = 1; i < n - 1; i++) {
+                if (data[i] < data[i - 1] && data[i] < data[i + 1]) {
+                    minPositions.push(i);
+                    minValues.push(data[i]);
+                }
+            }
+            
+            return { maxPositions, minPositions, maxValues, minValues };
+        }
+        
+        // 4. 检测最大值最小值的周期性（通过间隔分析）
+        function analyzePeriodicity(positions) {
+            if (positions.length < 3) return { hasPeriodicity: false, period: 0, regularity: 0 };
+            
+            // 计算间隔
+            const intervals = [];
+            for (let i = 1; i < positions.length; i++) {
+                intervals.push(positions[i] - positions[i - 1]);
+            }
+            
+            // 计算平均间隔和变异系数
+            let sum = 0;
+            let sumSq = 0;
+            for (let i = 0; i < intervals.length; i++) {
+                sum += intervals[i];
+                sumSq += intervals[i] * intervals[i];
+            }
+            
+            const meanInterval = sum / intervals.length;
+            const variance = (sumSq / intervals.length) - (meanInterval * meanInterval);
+            const stdDev = Math.sqrt(Math.max(0, variance));
+            const cv = meanInterval > 0 ? stdDev / meanInterval : 1.0; // 变异系数
+            
+            // 规律性评分：变异系数越小，规律性越高
+            const regularity = Math.max(0, 1.0 - cv);
+            
+            // 判断是否有周期性：规律性>0.6认为有周期性
+            const hasPeriodicity = regularity > 0.6;
+            
+            return { hasPeriodicity, period: meanInterval, regularity };
+        }
+        
+        // 5. 检测最大值最小值的相对固定性（大小相对固定）
+        function analyzeValueStability(values) {
+            if (values.length < 2) return { isStable: false, stability: 0 };
+            
+            // 计算统计特征
+            let sum = 0;
+            let sumSq = 0;
+            for (let i = 0; i < values.length; i++) {
+                sum += values[i];
+                sumSq += values[i] * values[i];
+            }
+            
+            const mean = sum / values.length;
+            const variance = (sumSq / values.length) - (mean * mean);
+            const stdDev = Math.sqrt(Math.max(0, variance));
+            const cv = mean > 0 ? stdDev / mean : 1.0; // 变异系数
+            
+            // 稳定性评分：变异系数越小，稳定性越高
+            const stability = Math.max(0, 1.0 - cv * 2); // 乘以2使阈值更严格
+            
+            // 判断是否稳定：稳定性>0.5认为相对固定
+            const isStable = stability > 0.5;
+            
+            return { isStable, stability };
+        }
+        
+        // 6. 主检测函数（新思路：简洁、准确，优先判断频闪）
+        function analyzeStrobeData() {
+            if (strobeDataCollection.length < 20) {
+                return '检测失败：数据点不足 (仅收集到 ' + strobeDataCollection.length + ' 个数据点，需要至少20个)';
+            }
+            
+            // 提取原始数据（不做任何滤波）
+            const rawData = strobeDataCollection.map(d => d.value);
+            const n = rawData.length;
+            
+            // 步骤1：检测极端异常突变（非常宽松，只检测明显异常）
+            const anomalies = detectAnomalies(rawData);
+            // 只有在检测到多个极端异常时才判定为污染（允许少量异常值）
+            if (anomalies.length > n * 0.1) { // 超过10%的数据点是异常才判定为污染
+                return `⚠️ 数据源污染：检测到大量异常突变（共${anomalies.length}处，占${(anomalies.length / n * 100).toFixed(1)}%），无法判断是否频闪。请确保测试环境稳定，避免光源移动或遮挡。 (数据点: ${n})`;
+            }
+            
+            // 步骤2：计算统计特征
+            const stats = calculateStatistics(rawData);
+            
+            // 步骤3：判断无频闪 - 几乎无变动，仅有极小随机性波动
+            const stabilityThreshold = Math.max(stats.mean * 0.02, 10); // 2%或至少10
+            if (stats.stdDev < stabilityThreshold && stats.range < stabilityThreshold * 5) {
+                return `未发现明显频闪：数值几乎无变化，仅有极小随机性波动 (标准差: ${stats.stdDev.toFixed(2)}, 范围: ${stats.range.toFixed(2)}, 数据点: ${n})`;
+            }
+            
+            // 步骤4：检测最大值和最小值的位置
+            const { maxPositions, minPositions, maxValues, minValues } = findMaxMinPositions(rawData);
+            
+            // 需要至少2个最大值和2个最小值才能判断（降低要求以适应随机性）
+            if (maxPositions.length < 2 || minPositions.length < 2) {
+                // 如果最大值或最小值太少，但数据有明显波动，可能是数据源污染
+                if (stats.range > stats.mean * 0.3) {
+                    return `⚠️ 数据源污染：最大值或最小值数量不足，且数据波动较大，无法判断周期性。请确保测试环境稳定。 (最大值: ${maxPositions.length}, 最小值: ${minPositions.length}, 范围: ${stats.range.toFixed(2)}, 数据点: ${n})`;
+                } else {
+                    return `未发现明显频闪：数据波动较小，最大值或最小值数量不足 (最大值: ${maxPositions.length}, 最小值: ${minPositions.length}, 范围: ${stats.range.toFixed(2)}, 数据点: ${n})`;
+                }
+            }
+            
+            // 步骤5：检测最大值最小值的周期性
+            const maxPeriodicity = analyzePeriodicity(maxPositions);
+            const minPeriodicity = analyzePeriodicity(minPositions);
+            
+            // 步骤6：检测最大值最小值的相对固定性（大小相对固定）
+            const maxStability = analyzeValueStability(maxValues);
+            const minStability = analyzeValueStability(minValues);
+            
+            // 步骤7：综合判断频闪（进一步放宽条件以适应随机性）
+            // 频闪的核心特征：最大值和最小值的数值相对固定（稳定性）
+            // 周期性可能因为随机性而降低，但如果稳定性好，仍然可以判定为频闪
+            
+            // 降低周期性阈值，适应随机性
+            const hasMaxPeriodicity = maxPeriodicity.regularity > 0.3;  // 从0.5降到0.3
+            const hasMinPeriodicity = minPeriodicity.regularity > 0.3;  // 从0.5降到0.3
+            const hasMaxStability = maxStability.stability > 0.4;
+            const hasMinStability = minStability.stability > 0.4;
+            
+            // 进一步放宽：如果稳定性很好，即使周期性稍低也可以
+            const hasGoodMaxStability = maxStability.stability > 0.6;
+            const hasGoodMinStability = minStability.stability > 0.5;
+            const hasWeakMaxPeriodicity = maxPeriodicity.regularity > 0.2;  // 很低的周期性要求
+            const hasWeakMinPeriodicity = minPeriodicity.regularity > 0.2;  // 很低的周期性要求
+            
+            // 判断1：标准频闪（周期性和稳定性都满足）
+            if (hasMaxPeriodicity && hasMinPeriodicity && hasMaxStability && hasMinStability) {
+                const avgPeriod = (maxPeriodicity.period + minPeriodicity.period) / 2;
+                const avgRegularity = (maxPeriodicity.regularity + minPeriodicity.regularity) / 2;
+                const avgStability = (maxStability.stability + minStability.stability) / 2;
+                const confidence = (avgRegularity + avgStability) / 2;
+                
+                return `存在频闪：检测到周期性波动，最大值和最小值均具有周期性和相对固定性 (平均周期: ${avgPeriod.toFixed(1)}, 规律性: ${(avgRegularity * 100).toFixed(1)}%, 稳定性: ${(avgStability * 100).toFixed(1)}%, 置信度: ${(confidence * 100).toFixed(1)}%, 最大值数: ${maxPositions.length}, 最小值数: ${minPositions.length}, 数据点: ${n})`;
+            }
+            
+            // 判断2：稳定性优先（稳定性好，周期性稍低也可以判定为频闪）
+            if (hasGoodMaxStability && hasGoodMinStability && hasWeakMaxPeriodicity && hasWeakMinPeriodicity) {
+                const avgPeriod = (maxPeriodicity.period + minPeriodicity.period) / 2;
+                const avgRegularity = (maxPeriodicity.regularity + minPeriodicity.regularity) / 2;
+                const avgStability = (maxStability.stability + minStability.stability) / 2;
+                // 稳定性权重更高
+                const confidence = (avgRegularity * 0.3 + avgStability * 0.7);
+                
+                return `存在频闪：检测到周期性波动（带有随机性），最大值和最小值数值相对固定 (平均周期: ${avgPeriod.toFixed(1)}, 规律性: ${(avgRegularity * 100).toFixed(1)}%, 稳定性: ${(avgStability * 100).toFixed(1)}%, 置信度: ${(confidence * 100).toFixed(1)}%, 最大值数: ${maxPositions.length}, 最小值数: ${minPositions.length}, 数据点: ${n})`;
+            }
+            
+            // 判断3：至少稳定性满足，且有一定周期性
+            if (hasMaxStability && hasMinStability && (hasWeakMaxPeriodicity || hasWeakMinPeriodicity)) {
+                const avgPeriod = (maxPeriodicity.period + minPeriodicity.period) / 2;
+                const avgRegularity = (maxPeriodicity.regularity + minPeriodicity.regularity) / 2;
+                const avgStability = (maxStability.stability + minStability.stability) / 2;
+                const confidence = (avgRegularity * 0.3 + avgStability * 0.7);
+                
+                return `存在频闪：检测到周期性波动（带有随机性），最大值和最小值数值相对固定 (平均周期: ${avgPeriod.toFixed(1)}, 规律性: ${(avgRegularity * 100).toFixed(1)}%, 稳定性: ${(avgStability * 100).toFixed(1)}%, 置信度: ${(confidence * 100).toFixed(1)}%, 最大值数: ${maxPositions.length}, 最小值数: ${minPositions.length}, 数据点: ${n})`;
+            }
+            
+            // 步骤8：无法确定 - 判定为数据源污染
+            return `⚠️ 数据源污染：无法确定是否存在频闪。最大值周期性: ${hasMaxPeriodicity ? '是' : '否'}(${(maxPeriodicity.regularity * 100).toFixed(1)}%), 最小值周期性: ${hasMinPeriodicity ? '是' : '否'}(${(minPeriodicity.regularity * 100).toFixed(1)}%), 最大值稳定性: ${hasMaxStability ? '是' : '否'}(${(maxStability.stability * 100).toFixed(1)}%), 最小值稳定性: ${hasMinStability ? '是' : '否'}(${(minStability.stability * 100).toFixed(1)}%)。请确保测试环境稳定。 (数据点: ${n})`;
+        }
+
+        // 下载数据 - 从浏览器端存储下载
+        function downloadCSV() {
+            if (clientDataStore.length === 0) {
+                alert('没有可下载的数据，请等待数据同步');
+                return;
+            }
+            
+            try {
+                let csvData = '时间戳,本地时间,ADC值,电压(V),ESP32运行时间(ms)\n';
+                
+                for (let i = 0; i < clientDataStore.length; i++) {
+                    const point = clientDataStore[i];
+                    const date = new Date(point.timestamp);
+                    csvData += point.timestamp + ',';
+                    csvData += date.toLocaleString() + ',';
+                    csvData += point.value + ',';
+                    csvData += point.voltage.toFixed(3) + ',';
+                    csvData += (point.uptime || 0) + '\n';
+                }
+                
+                const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `light_sensor_data_${new Date().getTime()}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                alert(`数据下载成功！共 ${clientDataStore.length} 个数据点`);
+            } catch (error) {
+                console.error('下载失败:', error);
+                alert('数据下载失败: ' + error.message);
+            }
+        }
+
+        // 页面加载完成后初始化
+        window.onload = function() {
+            initChart();
+            // 连接WebSocket
+            connectWebSocket();
+        };
+        
+        // 页面关闭时清理
+        window.onbeforeunload = function() {
+            if (ws) {
+                ws.close();
+            }
+            if (wsReconnectInterval) {
+                clearInterval(wsReconnectInterval);
+            }
+        };
+    </script>
+</body>
+</html>

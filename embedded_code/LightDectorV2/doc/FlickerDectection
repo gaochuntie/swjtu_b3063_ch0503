@@ -1,0 +1,555 @@
+光频闪检测算法设计与实现
+一、算法设计思路
+1.1 问题分析
+基于光敏电阻采集的光强值（电压值）判断光源频闪状态，需区分三种情况：
+1.	存在明显频闪：具有规律性的周期性波动
+2.	不存在频闪：数值稳定，波动极小
+3.	源数据污染：无规则的人为干扰或环境变化
+关键挑战在于区分周期性波动与随机波动。
+1.2 算法架构设计
+阶段一：数据预处理（去噪与归一化）
+1.	异常值检测与剔除：使用统计学方法识别并处理尖峰噪声
+2.	滤波处理：结合中值滤波和低通滤波平滑数据
+3.	数据归一化：消除量纲影响，便于特征提取
+阶段二：特征提取
+1.	统计特征：均值、方差、标准差、峰度、偏度
+2.	周期性特征：自相关函数分析、频谱分析
+3.	规律性特征：峰值间隔规律性、波形相似度
+4.	稳定性特征：趋势分析、局部波动性
+阶段三：多维度决策
+1.	稳定性判断：判断是否为稳定光源
+2.	周期性判断：判断是否存在规律波动
+3.	规律性判断：判断波动的规律性程度
+4.	污染判断：识别异常干扰模式
+1.3 核心算法原理
+1.3.1 周期性检测
+采用自相关函数和功率谱密度分析：
+•	自相关函数：检测信号自身的相似性
+•	频谱分析：通过FFT变换检测主要频率成分
+•	周期性评分：结合多个滞后值的相关系数
+1.3.2 规律性量化
+1.	峰值检测算法：识别局部极大值点
+2.	间隔分析：计算相邻峰值间隔的变异系数
+3.	波形相似度：比较相邻周期的波形相关性
+1.3.3 异常检测
+1.	滑动窗口统计：检测局部异常变化
+2.	趋势分析：识别持续性的上升/下降趋势
+3.	突变检测：识别突然的大幅度变化
+二、C语言实现
+#define _CRT_SECURE_NO_WARNINGS  
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <stdbool.h>
+#include <string.h>
+
+#define MAX_DATA_POINTS 1000
+#define SMOOTH_WINDOW 5
+#define MIN_PERIODIC_POINTS 10
+#define MAX_PERIODIC_POINTS 200
+
+// 数据结构
+typedef struct {
+    double* values;
+    int count;
+} DataSeries;
+
+typedef struct {
+    bool has_flicker;
+    bool is_contaminated;
+    bool is_stable;
+    double confidence;
+    const char* description;
+} DetectionResult;
+
+// 统计结构体
+typedef struct {
+    double mean;
+    double variance;
+    double std_dev;
+    double range;
+    double max;
+    double min;
+} Statistics;
+
+// 峰值结构体
+typedef struct {
+    int* positions;
+    double* values;
+    int count;
+} Peaks;
+
+// 辅助函数：分配double数组
+double* allocate_double_array(int size) {
+    return (double*)malloc(size * sizeof(double));
+}
+
+// 辅助函数：分配int数组
+int* allocate_int_array(int size) {
+    return (int*)malloc(size * sizeof(int));
+}
+
+// 1. 数据预处理函数
+void median_filter(double* input, double* output, int n, int window_size) {
+    for (int i = 0; i < n; i++) {
+        int start = i - window_size / 2;
+        int end = i + window_size / 2;
+        if (start < 0) start = 0;
+        if (end >= n) end = n - 1;
+
+        int count = end - start + 1;
+        double* window = allocate_double_array(count);
+        if (!window) return;
+
+        for (int j = 0, k = start; k <= end; j++, k++) {
+            window[j] = input[k];
+        }
+
+        // 冒泡排序找中值
+        for (int j = 0; j < count - 1; j++) {
+            for (int k = 0; k < count - j - 1; k++) {
+                if (window[k] > window[k + 1]) {
+                    double temp = window[k];
+                    window[k] = window[k + 1];
+                    window[k + 1] = temp;
+                }
+            }
+        }
+
+        output[i] = window[count / 2];
+        free(window);
+    }
+}
+
+void moving_average(double* input, double* output, int n, int window_size) {
+    for (int i = 0; i < n; i++) {
+        int start = i - window_size / 2;
+        int end = i + window_size / 2;
+        if (start < 0) start = 0;
+        if (end >= n) end = n - 1;
+
+        double sum = 0.0;
+        int count = 0;
+        for (int j = start; j <= end; j++) {
+            sum += input[j];
+            count++;
+        }
+        output[i] = sum / count;
+    }
+}
+
+// 2. 统计计算
+Statistics calculate_statistics(double* data, int n) {
+    Statistics stats;
+    double sum = 0.0, sum_sq = 0.0;
+
+    if (n <= 0) {
+        stats.mean = stats.variance = stats.std_dev = stats.range = 0.0;
+        stats.max = stats.min = 0.0;
+        return stats;
+    }
+
+    stats.max = data[0];
+    stats.min = data[0];
+
+    for (int i = 0; i < n; i++) {
+        sum += data[i];
+        sum_sq += data[i] * data[i];
+        if (data[i] > stats.max) stats.max = data[i];
+        if (data[i] < stats.min) stats.min = data[i];
+    }
+
+    stats.mean = sum / n;
+    stats.variance = (sum_sq / n) - (stats.mean * stats.mean);
+    if (stats.variance < 0) stats.variance = 0;
+    stats.std_dev = sqrt(stats.variance);
+    stats.range = stats.max - stats.min;
+
+    return stats;
+}
+
+// 3. 周期性检测（自相关分析）
+double calculate_autocorrelation(double* data, int n, int lag) {
+    if (lag <= 0 || lag >= n || n <= 1) return 0.0;
+
+    double mean = 0.0;
+    for (int i = 0; i < n; i++) {
+        mean += data[i];
+    }
+    mean /= n;
+
+    double numerator = 0.0;
+    double denominator = 0.0;
+
+    for (int i = 0; i < n - lag; i++) {
+        numerator += (data[i] - mean) * (data[i + lag] - mean);
+    }
+
+    for (int i = 0; i < n; i++) {
+        denominator += (data[i] - mean) * (data[i] - mean);
+    }
+
+    if (denominator == 0) return 0.0;
+    return numerator / denominator;
+}
+
+// 4. 峰值检测
+Peaks find_peaks(double* data, int n, double threshold) {
+    Peaks peaks;
+    peaks.positions = allocate_int_array(n);
+    peaks.values = allocate_double_array(n);
+    peaks.count = 0;
+
+    if (!peaks.positions || !peaks.values) {
+        peaks.count = 0;
+        return peaks;
+    }
+
+    for (int i = 1; i < n - 1; i++) {
+        if (data[i] > data[i - 1] && data[i] > data[i + 1] && data[i] > threshold) {
+            if (peaks.count < n) {
+                peaks.positions[peaks.count] = i;
+                peaks.values[peaks.count] = data[i];
+                peaks.count++;
+            }
+        }
+    }
+
+    return peaks;
+}
+
+// 5. 波动规律性分析
+double calculate_regularity_score(double* data, int n, Peaks peaks) {
+    if (peaks.count < 3) return 0.0;
+
+    double sum_intervals = 0.0;
+    double sum_sq_intervals = 0.0;
+
+    for (int i = 1; i < peaks.count; i++) {
+        // 显式转换，消除类型转换警告
+        double interval = (double)(peaks.positions[i] - peaks.positions[i - 1]);
+        sum_intervals += interval;
+        sum_sq_intervals += interval * interval;
+    }
+
+    double mean_interval = sum_intervals / (peaks.count - 1);
+    double variance = (sum_sq_intervals / (peaks.count - 1)) - (mean_interval * mean_interval);
+
+    if (mean_interval == 0) return 0.0;
+
+    double cv = sqrt(fabs(variance)) / mean_interval;
+    double score = 1.0 - cv;
+    return (score > 0.0) ? score : 0.0;
+}
+
+// 6. 主要检测函数
+DetectionResult detect_flicker(double* raw_data, int n) {
+    DetectionResult result = { false, false, false, 0.0, NULL };
+
+    if (n <= 0 || raw_data == NULL) {
+        result.description = "无效数据";
+        return result;
+    }
+
+    double* median_filtered = allocate_double_array(n);
+    double* smoothed = allocate_double_array(n);
+
+    if (!median_filtered || !smoothed) {
+        result.description = "内存分配失败";
+        free(median_filtered);
+        free(smoothed);
+        return result;
+    }
+
+    median_filter(raw_data, median_filtered, n, SMOOTH_WINDOW);
+    moving_average(median_filtered, smoothed, n, SMOOTH_WINDOW);
+
+    Statistics stats = calculate_statistics(smoothed, n);
+
+    // 判断数据是否稳定（无频闪）
+    double stability_threshold = stats.mean * 0.01;
+    if (stability_threshold < 0.001) stability_threshold = 0.001;
+
+    if (stats.std_dev < stability_threshold && stats.range < stability_threshold * 10) {
+        result.is_stable = true;
+        result.has_flicker = false;
+        result.is_contaminated = false;
+        // 显式限制范围，消除潜在的精度警告
+        result.confidence = 1.0 - (stats.std_dev / (stability_threshold + 0.0001));
+        result.confidence = (result.confidence > 1.0) ? 1.0 : (result.confidence < 0.0) ? 0.0 : result.confidence;
+        result.description = "不存在频闪：数值几乎无变化";
+
+        free(median_filtered);
+        free(smoothed);
+        return result;
+    }
+
+    // 检测周期性：显式转换消除double转int警告
+    int max_lag = (int)(n / 4.0);
+    // 用显式比较替代fmin/fmax，避免跨平台兼容问题
+    if (max_lag < MIN_PERIODIC_POINTS) max_lag = MIN_PERIODIC_POINTS;
+    if (max_lag > MAX_PERIODIC_POINTS) max_lag = MAX_PERIODIC_POINTS;
+    if (max_lag > n - 1) max_lag = n - 1;
+
+    int significant_peaks = 0;
+    for (int lag = 1; lag < max_lag; lag++) {
+        double ac = calculate_autocorrelation(smoothed, n, lag);
+        if (fabs(ac) > 0.3) {
+            significant_peaks++;
+        }
+    }
+
+    // 寻找峰值并分析规律性
+    double peak_threshold = stats.mean + stats.std_dev * 0.5;
+    Peaks peaks = find_peaks(smoothed, n, peak_threshold);
+    double regularity_score = calculate_regularity_score(smoothed, n, peaks);
+
+    // 综合判断
+    double periodic_score = (double)significant_peaks / (double)max_lag;
+    double amplitude_score = (stats.mean > 0) ? (stats.std_dev / stats.mean) : 0.0;
+
+    if (peaks.count >= 3 && regularity_score > 0.7 && periodic_score > 0.1) {
+        result.has_flicker = true;
+        result.is_contaminated = false;
+        result.confidence = (regularity_score + periodic_score) / 2.0;
+        result.description = "存在明显频闪：检测到周期性波动";
+    }
+    else if (amplitude_score > 0.5 || peaks.count < 2) {
+        result.has_flicker = false;
+        result.is_contaminated = true;
+        result.confidence = amplitude_score;
+        result.description = "源数据污染：无规则变化或大幅度变化";
+    }
+    else if (regularity_score < 0.3) {
+        result.has_flicker = false;
+        result.is_contaminated = true;
+        result.confidence = 1.0 - regularity_score;
+        result.description = "源数据污染：波动不规则（可能因移动或手抖）";
+    }
+    else {
+        result.has_flicker = false;
+        result.is_contaminated = true;
+        result.confidence = 0.5;
+        result.description = "无法确定：可能是弱频闪或轻度干扰";
+    }
+
+    // 清理内存
+    free(peaks.positions);
+    free(peaks.values);
+    free(median_filtered);
+    free(smoothed);
+
+    return result;
+}
+
+// 7. 读取数据（文件）- 兼容Windows/Linux
+DataSeries read_data_from_file(const char* filename) {
+    DataSeries series;
+    series.values = NULL;
+    series.count = 0;
+
+    FILE* file = NULL;
+#ifdef _WIN32
+    // Windows使用fopen_s
+    errno_t err = fopen_s(&file, filename, "r");
+    if (err != 0 || file == NULL) {
+#else
+    // Linux/Mac使用fopen
+    file = fopen(filename, "r");
+    if (!file) {
+#endif
+        printf("文件打开失败：%s\n", filename);
+        return series;
+    }
+
+    series.values = allocate_double_array(MAX_DATA_POINTS);
+    if (!series.values) {
+        fclose(file);
+        return series;
+    }
+
+#ifdef _WIN32
+    // Windows使用fscanf_s
+    while (series.count < MAX_DATA_POINTS && fscanf_s(file, "%lf", &series.values[series.count]) == 1) {
+#else
+    // Linux/Mac使用fscanf
+    while (series.count < MAX_DATA_POINTS && fscanf(file, "%lf", &series.values[series.count]) == 1) {
+#endif
+        series.count++;
+    }
+
+    fclose(file);
+    return series;
+    }
+
+// 8. 释放数据
+void free_data_series(DataSeries * series) {
+    if (series && series->values) {
+        free(series->values);
+        series->values = NULL;
+        series->count = 0;
+    }
+}
+
+// 9. 自定义数据输入函数 - 兼容Windows/Linux
+DataSeries input_custom_data() {
+    DataSeries series;
+    series.values = NULL;
+    series.count = 0;
+
+    char input_buf[1024];
+    printf("请输入数据点数（最大%d）：", MAX_DATA_POINTS);
+    fgets(input_buf, sizeof(input_buf), stdin);
+    // 显式转换，消除警告
+    int n = (int)atoi(input_buf);
+    if (n <= 0 || n > MAX_DATA_POINTS) {
+        printf("无效的点数，默认使用10个点\n");
+        n = 10;
+    }
+
+    series.values = allocate_double_array(n);
+    if (!series.values) {
+        printf("内存分配失败\n");
+        return series;
+    }
+
+    printf("请输入%d个数值（用空格/回车分隔）：\n", n);
+    int count = 0;
+    while (count < n) {
+#ifdef _WIN32
+        // Windows使用scanf_s
+        if (scanf_s("%lf", &series.values[count]) != 1) {
+#else
+        // Linux/Mac使用scanf
+        if (scanf("%lf", &series.values[count]) != 1) {
+#endif
+            // 清理输入缓冲区
+            while (getchar() != '\n');
+            printf("输入格式错误，请重新输入第%d个数值：", count + 1);
+            continue;
+        }
+        count++;
+        }
+    series.count = n;
+
+    // 清理输入缓冲区
+    while (getchar() != '\n');
+    return series;
+    }
+
+// 10. 打印检测结果
+void print_detection_result(const char* case_name, DetectionResult result, Statistics raw_stats) {
+    printf("\n=== %s ===\n", case_name);
+    printf("原始数据统计：\n");
+    printf("  均值: %.2f, 标准差: %.2f, 范围: %.2f\n", raw_stats.mean, raw_stats.std_dev, raw_stats.range);
+    printf("  最大值: %.2f, 最小值: %.2f\n", raw_stats.max, raw_stats.min);
+    printf("检测结果：\n");
+    printf("  存在频闪: %s\n", result.has_flicker ? "是" : "否");
+    printf("  数据污染: %s\n", result.is_contaminated ? "是" : "否");
+    printf("  稳定光源: %s\n", result.is_stable ? "是" : "否");
+    printf("  置信度: %.2f\n", result.confidence);
+    printf("  描述: %s\n", result.description);
+}
+
+// 11. 预设测试案例
+void run_test_cases() {
+    printf("\n==================== 预设测试案例 ====================\n");
+
+    // 案例1：稳定光源（无频闪）
+    double stable_data[20];
+    for (int i = 0; i < 20; i++) stable_data[i] = 500.0;
+    int stable_count = 20;
+    Statistics stable_stats = calculate_statistics(stable_data, stable_count);
+    DetectionResult stable_result = detect_flicker(stable_data, stable_count);
+    print_detection_result("案例1：稳定光源（无频闪）", stable_result, stable_stats);
+
+    // 案例2：规则频闪（正弦波周期波动）
+    double flicker_data[50];
+    for (int i = 0; i < 50; i++) flicker_data[i] = 500.0 + 100.0 * sin(2 * 3.14159 * i / 10.0);
+    int flicker_count = 50;
+    Statistics flicker_stats = calculate_statistics(flicker_data, flicker_count);
+    DetectionResult flicker_result = detect_flicker(flicker_data, flicker_count);
+    print_detection_result("案例2：规则频闪（正弦波周期）", flicker_result, flicker_stats);
+
+    // 案例3：随机干扰（无规律波动）
+    double noisy_data[30];
+    srand(42);
+    for (int i = 0; i < 30; i++) noisy_data[i] = 500.0 + (double)(rand() % 200 - 100);
+    int noisy_count = 30;
+    Statistics noisy_stats = calculate_statistics(noisy_data, noisy_count);
+    DetectionResult noisy_result = detect_flicker(noisy_data, noisy_count);
+    print_detection_result("案例3：随机干扰（无规律波动）", noisy_result, noisy_stats);
+
+    // 案例4：弱频闪（小幅度周期波动）
+    double weak_flicker_data[40];
+    for (int i = 0; i < 40; i++) weak_flicker_data[i] = 500.0 + 10.0 * sin(2 * 3.14159 * i / 8.0);
+    int weak_count = 40;
+    Statistics weak_stats = calculate_statistics(weak_flicker_data, weak_count);
+    DetectionResult weak_result = detect_flicker(weak_flicker_data, weak_count);
+    print_detection_result("案例4：弱频闪（小幅度周期波动）", weak_result, weak_stats);
+
+    // 案例5：含噪点的频闪（周期波动+异常值）
+    double noisy_flicker_data[30];
+    for (int i = 0; i < 30; i++) noisy_flicker_data[i] = 500.0 + 50.0 * sin(2 * 3.14159 * i / 10.0);
+    noisy_flicker_data[15] = 1200.0; // 插入异常噪点
+    int noisy_flicker_count = 30;
+    Statistics noisy_flicker_stats = calculate_statistics(noisy_flicker_data, noisy_flicker_count);
+    DetectionResult noisy_flicker_result = detect_flicker(noisy_flicker_data, noisy_flicker_count);
+    print_detection_result("案例5：含噪点的频闪（周期+异常值）", noisy_flicker_result, noisy_flicker_stats);
+}
+
+int main() {
+    printf("==================== 频闪检测程序 ====================\n");
+    printf("请选择输入方式：\n");
+    printf("1. 自定义输入数据\n");
+    printf("2. 运行预设测试案例\n");
+    printf("3. 从文件读取数据（每行一个数值）\n");
+    printf("请输入选项（1/2/3）：");
+
+    char choice[10];
+    fgets(choice, sizeof(choice), stdin);
+    // 显式转换，消除警告
+    int opt = (int)atoi(choice);
+
+    DataSeries series;
+    series.values = NULL;
+    series.count = 0;
+
+    switch (opt) {
+    case 1:
+        series = input_custom_data();
+        break;
+    case 2:
+        run_test_cases();
+        return 0;
+    case 3: {
+        char filename[256];
+        printf("请输入数据文件路径：");
+        fgets(filename, sizeof(filename), stdin);
+        // 去除换行符
+        filename[strcspn(filename, "\n")] = '\0';
+        series = read_data_from_file(filename);
+        break;
+    }
+    default:
+        printf("无效选项，默认运行预设测试案例\n");
+        run_test_cases();
+        return 0;
+    }
+
+    if (series.count <= 0 || !series.values) {
+        printf("数据输入失败！\n");
+        free_data_series(&series);
+        return 1;
+    }
+
+    // 执行检测并打印结果
+    printf("\n==================== 自定义数据检测结果 ====================\n");
+    Statistics raw_stats = calculate_statistics(series.values, series.count);
+    DetectionResult result = detect_flicker(series.values, series.count);
+    print_detection_result("自定义数据", result, raw_stats);
+
+    // 释放内存
+    free_data_series(&series);
+    return 0;
+}

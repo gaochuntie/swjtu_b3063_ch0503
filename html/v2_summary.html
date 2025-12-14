@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32光线探测器 V2 版本说明</title>
+    <style>
+        .version-comparison {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            max-width: 900px;
+            margin: 20px auto;
+            background: #f8f9fa;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .version-header {
+            display: flex;
+            background: linear-gradient(135deg, #2c3e50, #4a6491);
+            color: white;
+            text-align: center;
+        }
+        .version-header div {
+            flex: 1;
+            padding: 20px;
+        }
+        .version-header .v1 { background: rgba(0,0,0,0.2); }
+        .version-header .v2 { background: #e74c3c; }
+        .version-title { 
+            font-size: 1.8em; 
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        .version-tagline { 
+            font-size: 0.9em; 
+            opacity: 0.9;
+        }
+        .comparison-content {
+            display: flex;
+            min-height: 400px;
+        }
+        .version-column {
+            flex: 1;
+            padding: 25px;
+        }
+        .v1-column { 
+            background: #ecf0f1; 
+            border-right: 1px dashed #bdc3c7;
+        }
+        .v2-column { 
+            background: white; 
+            position: relative;
+        }
+        .version-column h3 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+            margin-top: 0;
+        }
+        .v2-column h3 { border-color: #e74c3c; }
+        .feature-list {
+            list-style: none;
+            padding-left: 0;
+        }
+        .feature-list li {
+            margin-bottom: 12px;
+            padding-left: 25px;
+            position: relative;
+        }
+        .feature-list li:before {
+            content: "•";
+            color: #3498db;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        .v2-column .feature-list li:before { color: #e74c3c; }
+        .advantage-badge {
+            display: inline-block;
+            background: #e74c3c;
+            color: white;
+            font-size: 0.7em;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+        .key-advantages {
+            background: #fef9e7;
+            border-left: 4px solid #f1c40f;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .key-advantages h3 { color: #d35400; border-bottom: none; }
+        .advantage-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .advantage-item {
+            background: white;
+            padding: 12px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .advantage-item strong { color: #27ae60; }
+    </style>
+</head>
+<body>
+    <div class="version-comparison">
+        <div class="version-header">
+            <div class="v1">
+                <div class="version-title">V1 版本</div>
+                <div class="version-tagline">独立数据采集与显示</div>
+            </div>
+            <div class="v2">
+                <div class="version-title">V2 版本</div>
+                <div class="version-tagline">网络化智能感知节点</div>
+            </div>
+        </div>
+        
+        <div class="comparison-content">
+            <div class="version-column v1-column">
+                <h3>核心功能</h3>
+                <ul class="feature-list">
+                    <li>通过光敏电阻（GPIO5）采集环境光线强度</li>
+                    <li>12位ADC精度，0-3.3V量程</li>
+                    <li>OLED屏幕（128x32）实时波形显示</li>
+                    <li>双缓冲技术防闪烁</li>
+                    <li>100ms采样间隔（可调）</li>
+                    <li>串口打印传感器数据</li>
+                </ul>
+                
+                <h3>架构特点</h3>
+                <ul class="feature-list">
+                    <li>单一设备独立工作</li>
+                    <li>所有功能在ESP32上完成</li>
+                    <li>数据仅本地显示</li>
+                </ul>
+            </div>
+            
+            <div class="version-column v2-column">
+                <h3>升级与新增功能 <span class="advantage-badge">NEW</span></h3>
+                <ul class="feature-list">
+                    <li><strong>Wi-Fi热点模式</strong> - ESP32创建独立AP供设备连接</li>
+                    <li><strong>Web服务器</strong> - 提供完整的网页控制界面[3](@ref)</li>
+                    <li><strong>WebSocket实时通信</strong> - 毫秒级数据同步到浏览器</li>
+                    <li><strong>浏览器端数据处理</strong> - 频闪检测、数据存储、图表绘制在浏览器完成</li>
+                    <li><strong>丰富的控制指令</strong>：
+                        <ul>
+                            <li>频率切换（20ms/50ms/100ms/200ms）</li>
+                            <li>暂停/继续采集</li>
+                            <li>峰值记录与重置</li>
+                            <li>OLED显示器开关控制</li>
+                            <li>系统重启</li>
+                        </ul>
+                    </li>
+                    <li><strong>智能频闪检测</strong> - 5秒高速采样，浏览器端算法分析[3](@ref)</li>
+                    <li><strong>数据导出</strong> - 浏览器本地存储，CSV格式下载</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="key-advantages">
+            <h3>V2版本核心架构优势</h3>
+            <div class="advantage-grid">
+                <div class="advantage-item">
+                    <strong>职责分离</strong><br>
+                    ESP32专注数据采集，浏览器负责复杂计算与展示，提升系统稳定性[3](@ref)
+                </div>
+                <div class="advantage-item">
+                    <strong>实时性提升</strong><br>
+                    WebSocket取代HTTP轮询，实现真正的低延迟数据流[5](@ref)
+                </div>
+                <div class="advantage-item">
+                    <strong>资源优化</strong><br>
+                    浏览器端处理减轻ESP32内存压力，支持更复杂的数据分析算法[3](@ref)
+                </div>
+                <div class="advantage-item">
+                    <strong>可扩展性</strong><br>
+                    模块化架构易于添加新功能（如语音控制、多传感器融合）[3](@ref)
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

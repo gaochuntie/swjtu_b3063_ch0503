@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32光线探测器 - 外壳设计特色</title>
+    <style>
+        .enclosure-features {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .feature-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #2c3e50;
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .feature-header h1 {
+            margin: 0;
+            font-size: 2.2em;
+            font-weight: 300;
+        }
+        
+        .feature-header p {
+            margin: 10px 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .feature-category {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .feature-category:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .category-title {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 0;
+            font-size: 1.4em;
+            display: flex;
+            align-items: center;
+        }
+        
+        .category-title::before {
+            content: "◆";
+            margin-right: 10px;
+            color: #3498db;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .feature-item {
+            margin-bottom: 15px;
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-item:hover {
+            background: #edf7ff;
+            transform: translateX(5px);
+        }
+        
+        .feature-item strong {
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+        
+        .feature-desc {
+            color: #555;
+            line-height: 1.5;
+            margin: 0;
+        }
+        
+        .design-principles {
+            background: #2c3e50;
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+        
+        .principles-title {
+            text-align: center;
+            margin-top: 0;
+            font-size: 1.6em;
+        }
+        
+        .principles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            text-align: center;
+        }
+        
+        .principle {
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+        }
+        
+        .principle h4 {
+            margin: 0 0 10px;
+            color: #3498db;
+        }
+        
+        .principle p {
+            margin: 0;
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        @media (max-width: 768px) {
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .feature-header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="enclosure-features">
+        <div class="feature-header">
+            <h1>ESP32光线探测器外壳设计特色</h1>
+            <p>专为V1与V2版本量身打造的专业级防护外壳</p>
+        </div>
+        
+        <div class="feature-grid">
+            <div class="feature-category">
+                <h2 class="category-title">内部精密结构</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <strong>精密卡位防位移结构</strong>
+                        <p class="feature-desc">内部采用量身定制的卡槽设计，完美固定ESP32核心板，确保在移动或振动环境下不发生任何位移[3](@ref)。</p>
+                    </li>
+                    <li class="feature-item">
+                        <strong>科学合理的布线空间</strong>
+                        <p class="feature-desc">精心计算内部空间布局，预留充足走线通道和核心板放置区域，避免线材挤压，保证内部空气流通。</p>
+                    </li>
+                    <li class="feature-item">
+                        <strong>光敏电阻内陷式布局</strong>
+                        <p class="feature-desc">采用独特的内陷式光敏电阻布置，有效隔离OLED显示器光线干扰，确保采集数据的准确性[9](@ref)。</p>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="feature-category">
+                <h2 class="category-title">散热与可维护性</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <strong>高效散热背部通风设计</strong>
+                        <p class="feature-desc">背部设置多孔通风结构，形成自然对流散热通道，有效防止高温积累对电子元件造成损坏[12](@ref)。</p>
+                    </li>
+                    <li class="feature-item">
+                        <strong>模块化可拆卸结构</strong>
+                        <p class="feature-desc">采用卡扣式设计，无需工具即可快速拆卸与组装，方便维护、升级或元件更换，提高设备可维护性。</p>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="feature-category">
+                <h2 class="category-title">用户体验优化</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <strong>人性化倒角防割手设计</strong>
+                        <p class="feature-desc">所有边缘均采用圆滑倒角处理，不仅外观精致，更确保手持舒适性，避免尖锐边角造成不适或损伤。</p>
+                    </li>
+                    <li class="feature-item">
+                        <strong">符合人体工学的紧凑结构</strong>
+                        <p class="feature-desc">经过精心计算的外形尺寸，大小适中便于手持操作，同时保证内部元件合理布局，实现便携性与功能性的完美平衡。</p>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="feature-category">
+                <h2 class="category-title">接口兼容性</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <strong>Type-C通用接口设计</strong>
+                        <p class="feature-desc">Type-C接口开口经过精确计算，适配各种品牌数据线接入，提供充足的插拔空间，确保连接稳定性[12](@ref)。</p>
+                    </li>
+                    <li class="feature-item">
+                        <strong>扩展接口预留</strong>
+                        <p class="feature-desc">为未来功能扩展预留接口空间，支持添加额外传感器或模块，满足项目升级需求。</p>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="design-principles">
+            <h3 class="principles-title">外壳设计核心原则</h3>
+            <div class="principles-grid">
+                <div class="principle">
+                    <h4>功能优先</h4>
+                    <p>每一个设计元素都服务于设备的核心功能</p>
+                </div>
+                <div class="principle">
+                    <h4>用户体验</h4>
+                    <p>从实际操作角度优化每一个细节设计</p>
+                </div>
+                <div class="principle">
+                    <h4>可靠耐用</h4>
+                    <p>选用优质材料确保长期使用稳定性</p>
+                </div>
+                <div class="principle">
+                    <h4>易于维护</h4>
+                    <p>模块化设计降低维护门槛和成本</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
